@@ -1,8 +1,9 @@
+import json
 import requests
 
 from .basemanager import BaseManager
 from .constants import XERO_PAYROLL_URL
-from .utils import singular
+from .utils import singular, json_load_object_hook
 
 
 class PayrollManager(BaseManager):
