@@ -25,3 +25,14 @@ class PayrollManager(BaseManager):
         for method_name in self.DECORATED_METHODS:
             method = getattr(self, "_%s" % method_name)
             setattr(self, method_name, self._get_data(method))
+
+    def _parse_api_response(self, response, resource_name):
+        data = json.loads(response.text, object_hook=json_load_object_hook)
+        assert data["httpStatusCode"] == "OK", (
+            "Expected the API to say OK but received %s" % data["Status"]
+        )
+
+        try:
+            return data[resource_name]
+        except KeyError:
+            return data
