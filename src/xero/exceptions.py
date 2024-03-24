@@ -50,10 +50,16 @@ class XeroBadRequest(XeroException):
 
         elif response.headers["content-type"].startswith("text/html"):
             payload = parse_qs(response.text)
-            self.errors = [payload["oauth_problem"][0]]
-            self.problem = self.errors[0]
-            super().__init__(response, payload["oauth_problem_advice"][0])
-
+            if payload:
+                self.errors = [payload["oauth_problem"][0]]
+                self.problem = self.errors[0]
+                super().__init__(response, payload["oauth_problem_advice"][0])
+            else:
+                # Sometimes xero returns the error message as pure text
+                # Not sure how to validate this is always the case
+                self.errors = [response.text]
+                self.problem = self.errors[0]
+                super().__init__(response, response.text)
         else:
             # Extract the messages from the text.
             # parseString takes byte content, not unicode.
@@ -69,10 +75,17 @@ class XeroBadRequest(XeroException):
 class XeroUnauthorized(XeroException):
     # HTTP 401: Unauthorized
     def __init__(self, response):
-        payload = parse_qs(response.text)
-        self.errors = [payload["oauth_problem"][0]]
-        self.problem = self.errors[0]
-        super().__init__(response, payload["oauth_problem_advice"][0])
+        if response.headers["content-type"].startswith("application/json"):
+            data = json.loads(response.text)
+            msg = data.get("Detail", "")
+            self.errors = [msg.split(":")[0]]
+            self.problem = self.errors[0]
+            super().__init__(response, msg)
+        else:
+            payload = parse_qs(response.text)
+            self.errors = [payload["oauth_problem"][0]]
+            self.problem = self.errors[0]
+            super().__init__(response, payload["oauth_problem_advice"][0])
 
 
 class XeroForbidden(XeroException):
